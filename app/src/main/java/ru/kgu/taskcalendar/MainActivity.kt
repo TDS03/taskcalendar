@@ -2,45 +2,48 @@ package ru.kgu.taskcalendar
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
+import android.widget.TextView
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var rvTasks: RecyclerView
+    private val taskViewModel: TaskViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        rvTasks = findViewById(R.id.rvTasks)
-        rvTasks.layoutManager = LinearLayoutManager(this)
+        val recycler = findViewById<RecyclerView>(R.id.rvTasks)
+        val emptyText = findViewById<TextView>(R.id.tvEmpty)
+        val addButton = findViewById<FloatingActionButton>(R.id.fabAdd)
 
-        findViewById<FloatingActionButton>(R.id.fabAdd).setOnClickListener {
+        val taskAdapter = TaskAdapter { task ->
+            val intent = Intent(this, TaskDetailActivity::class.java)
+            intent.putExtra("task_title", task.title)
+            intent.putExtra("task_date", task.date)
+            intent.putExtra("task_is_done", task.isDone)
+            startActivity(intent)
+        }
+        recycler.layoutManager = LinearLayoutManager(this)
+        recycler.adapter = taskAdapter
+
+        taskViewModel.tasks.observe(this) { list ->
+            taskAdapter.updateList(list)
+            emptyText.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+        }
+
+        addButton.setOnClickListener {
             startActivity(Intent(this, AddTaskActivity::class.java))
         }
-    }
 
-    override fun onResume() {
-        super.onResume()
-        loadTasks()
-    }
-
-    private fun loadTasks() {
-        val db = AppDatabase.getInstance(this)
-        lifecycleScope.launch {
-            val tasks = db.taskStorage().fetchAllTasks()
-            rvTasks.adapter = TaskAdapter(tasks) { task ->
-                val intent = Intent(this@MainActivity, TaskDetailActivity::class.java)
-                intent.putExtra("task_title", task.title)
-                intent.putExtra("task_date", task.date)
-                intent.putExtra("task_is_done", task.isDone)
-                startActivity(intent)
-            }
+        addButton.setOnLongClickListener {
+            taskViewModel.addTask(Task(title = "Проверка", description = "", date = "01.11.2026"))
+            true
         }
     }
 }

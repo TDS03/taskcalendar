@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import androidx.lifecycle.LiveData
 
 @Dao
 interface TaskStorage {
@@ -23,4 +24,7 @@ interface TaskStorage {
 
     @Query("SELECT * FROM tasks_table WHERE date = :selectedDate")
     suspend fun fetchTasksForDate(selectedDate: String): List<Task>
+
+    @Query("SELECT * FROM tasks_table ORDER BY date ASC")
+    fun getTasksLive(): LiveData<List<Task>>
 }
